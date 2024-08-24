@@ -1,0 +1,16 @@
+[package]
+name = "rustic-wisdom"
+version = "0.1.0"
+edition = "2021"
+
+# Path to the main source file
+[[bin]]
+name = "rustic-wisdom"
+path = "src/EthosEngine/main.rs"
+
+[dependencies]
+tokio = { version = "1.39.3", features = ["full"] }
+reqwest = { version = "0.12.7", features = ["json", "rustls-tls"] }
+serde = { version = "1.0.209", features = ["derive"] }
+serde_json = "1.0.127"
+dotenv = "0.15.0"
