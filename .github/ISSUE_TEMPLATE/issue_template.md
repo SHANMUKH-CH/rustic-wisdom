@@ -17,7 +17,3 @@ This issue is created to trigger the Cargo run workflow. The output of the `carg
 2. The GitHub Actions workflow will be triggered.
 3. The output of the `cargo run` command will be commented on this issue.
 4. The issue will be closed automatically.
-
-## Additional Information
-
-Any additional information or context can be added here.

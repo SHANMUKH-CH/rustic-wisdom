@@ -1,8 +1,12 @@
 name: CI
 
 on:
+    push:
+        branches:
+            - feat/*
+            - fix/*
     issues:
-        types: [opened]
+        types: [opened, reopened]
     pull_request:
         types: [opened, synchronize, reopened]
 
@@ -12,7 +16,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
     - name: Set up Rust toolchain
       uses: actions-rs/toolchain@v1
@@ -40,31 +44,32 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Download cargo output
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: cargo-output
 
     - name: Comment on issue and close it
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
-          const github = require('@actions/github');
-          const fs = require('fs');
-          const output = fs.readFileSync('cargo_output.txt', 'utf8');
-          const issue_number = github.context.issue.number;
-          await github.issues.createComment({
-            ...github.context.repo,
+            const fs = require('fs');
+            const output = fs.readFileSync('cargo_output.txt', 'utf8');
+            const issue_number = context.issue.number;
+
+            await github.issues.createComment({
+            ...context.repo,
             issue_number,
-            body: `\`\`\`\n${output}\n\`\`\``
-          });
-          await github.issues.update({
-            ...github.context.repo,
+            body: `### Cargo Build Output\n\`\`\`\n${output}\n\`\`\``
+            });
+
+            await github.issues.update({
+            ...context.repo,
             issue_number,
             state: 'closed'
-          });
+            });
 
   deploy_to_gh_pages:
     if: github.event_name == 'issues'
@@ -73,10 +78,10 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Download cargo output
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: cargo-output
 
