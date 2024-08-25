@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "cargo run --> gemini-flash-ai-philosopher",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "run",
+                "--target-dir=/mnt/d/rustic-wisdom"
+            ],
+            "options": {
+                "shell": {
+                    "executable": "wsl.exe"
+                }
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [],
+            "detail": "Run cargo in WSL"
+        }
+    ]
+}

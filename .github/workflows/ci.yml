@@ -1,29 +1,98 @@
-# TODO: write workflow file for rust-app
-name: Rust CI
+name: CI
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
-    branches:
-      - main
+    issues:
+        types: [opened]
+    pull_request:
+        types: [opened, synchronize, reopened]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v2
 
-    - name: Set up Rust
+    - name: Set up Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
 
-    - name: Build
-      run: cargo build --verbose
+    - name: Build and Run cargo
+      id: cargo_build_and_run
+      run: |
+        cargo build --verbose
+        cargo run --quiet | tee cargo_output.txt
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
-    - name: Run tests
-      run: cargo test --verbose
+    - name: Upload cargo output
+      uses: actions/upload-artifact@v2
+      with:
+        name: cargo-output
+        path: cargo_output.txt
+
+  comment_and_close_issue:
+    if: github.event_name == 'issues'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Download cargo output
+      uses: actions/download-artifact@v2
+      with:
+        name: cargo-output
+
+    - name: Comment on issue and close it
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const output = fs.readFileSync('cargo_output.txt', 'utf8');
+          const issue_number = context.issue.number;
+          await github.issues.createComment({
+            ...context.repo,
+            issue_number,
+            body: `\`\`\`\n${output}\n\`\`\``
+          });
+          await github.issues.update({
+            ...context.repo,
+            issue_number,
+            state: 'closed'
+          });
+
+  deploy_to_gh_pages:
+    if: github.event_name == 'issues'
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Download cargo output
+      uses: actions/download-artifact@v2
+      with:
+        name: cargo-output
+
+    - name: Install pandoc
+      run: sudo apt-get install -y pandoc
+
+    - name: Convert Markdown to HTML
+      run: pandoc cargo_output.txt -o index.html
+
+    - name: Deploy to GitHub Pages
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git checkout --orphan gh-pages
+        git reset --hard
+        git add index.html
+        git commit -m 'Deploy to GitHub Pages'
+        git push --force origin gh-pages
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
