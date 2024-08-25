@@ -4,7 +4,7 @@ on:
     issues:
         types: [opened]
     pull_request:
-        types: [opened]
+        types: [opened, synchronize, reopened]
 
 jobs:
   build:
@@ -27,13 +27,25 @@ jobs:
       env:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
+    - name: Upload cargo output
+      uses: actions/upload-artifact@v2
+      with:
+        name: cargo-output
+        path: cargo_output.txt
+
   comment_and_close_issue:
+    if: github.event_name == 'issues'
     needs: build
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+
+    - name: Download cargo output
+      uses: actions/download-artifact@v2
+      with:
+        name: cargo-output
 
     - name: Comment on issue and close it
       uses: actions/github-script@v6
@@ -54,12 +66,18 @@ jobs:
           });
 
   deploy_to_gh_pages:
+    if: github.event_name == 'issues'
     needs: build
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+
+    - name: Download cargo output
+      uses: actions/download-artifact@v2
+      with:
+        name: cargo-output
 
     - name: Install pandoc
       run: sudo apt-get install -y pandoc
@@ -73,7 +91,7 @@ jobs:
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
         git checkout --orphan gh-pages
         git reset --hard
-        git add index.html Cargo.lock
+        git add index.html
         git commit -m 'Deploy to GitHub Pages'
         git push --force origin gh-pages
       env:
