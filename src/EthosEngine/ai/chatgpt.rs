@@ -1,77 +1,84 @@
-use std::env;
-use std::error::Error;
+use log::{debug, error};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::env;
+use std::error::Error;
 
 #[derive(Serialize)]
 struct ChatRequest {
-    model: String,
-    max_tokens: u32,
-    messages: Vec<Message>,
+    contents: Vec<Content>,
 }
 
 #[derive(Serialize)]
-struct Message {
+struct Content {
     role: String,
-    content: String,
+    parts: Vec<RequestPart>,
+}
+
+#[derive(Serialize)]
+struct RequestPart {
+    text: String,
 }
 
 #[derive(Deserialize)]
 struct ChatResponse {
-    choices: Option<Vec<Choice>>,
-    error: Option<ApiError>,
+    candidates: Vec<Candidate>,
 }
 
 #[derive(Deserialize)]
-struct Choice {
-    message: MessageContent,
+struct Candidate {
+    content: MessageContent,
 }
 
 #[derive(Deserialize)]
 struct MessageContent {
-    content: String,
+    parts: Vec<ResponsePart>,
 }
 
 #[derive(Deserialize)]
-struct ApiError {
-    message: String,
-    #[serde(rename = "type")]
-    error_type: String,
+struct ResponsePart {
+    text: String,
 }
 
-// Initialize the HTTP client and request to ChatGPT API
+/*
+TODO:
+- add functionality to use mutiple gpt api providers.
+- add functionality to use different gpt models.
+- use oops concepts to make the code more modular, if the codebase grows.
+*/
+
+// Initialize the HTTP client and request to Google API
 pub async fn get_chatgpt_response(prompt: &str) -> Result<String, Box<dyn Error>> {
-    dotenv::dotenv().ok(); // Load environment variables
+    dotenv::dotenv().ok();
 
     // Debug print to check if the .env file is being loaded
-    if let Ok(_) = env::var("ANTHROPIC_API_KEY") {
-        println!(".env file loaded successfully");
+    if env::var("GOOGLE_API_KEY").is_ok() {
+        debug!(".env file loaded successfully");
     } else {
-        println!("Failed to load .env file");
+        error!("Failed to load .env file");
     }
 
     // Debug print to check if the API key is being picked up
-    let api_key = env::var("ANTHROPIC_API_KEY")?;
-    println!("API Key: {}", api_key); // Print the API key for debugging
+    let api_key = env::var("GOOGLE_API_KEY")?;
+    debug!("API Key: {}", api_key);
 
     let client = Client::new();
-    let request_body = ChatRequest {
-        model: "claude-3-5-sonnet-20240620".to_string(),
-        max_tokens: 1024,
-        messages: vec![Message {
+    let request = ChatRequest {
+        contents: vec![Content {
             role: "user".to_string(),
-            content: prompt.to_string(),
+            parts: vec![RequestPart {
+                text: prompt.to_string(),
+            }],
         }],
     };
 
     // Print the JSON payload for debugging
-    let json_payload = serde_json::to_string(&request_body)?;
-    println!("JSON Payload: {}", json_payload);
+    let json_payload = serde_json::to_string(&request)?;
+    debug!("JSON Payload: {}", json_payload);
 
     let response = client
-        .post("https://api.anthropic.com/v1/messages")
-        .header("x-api-key", api_key)
-        .header("anthropic-version", "2023-06-01")
+        .post("https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent")
+        .header("x-goog-api-key", api_key)
         .header("Content-Type", "application/json")
         .body(json_payload)
         .send()
@@ -79,21 +86,14 @@ pub async fn get_chatgpt_response(prompt: &str) -> Result<String, Box<dyn Error>
 
     // Print the raw response for debugging
     let text = response.text().await?;
-    println!("Raw response: {}", text);
+    debug!("Raw response: {}", text);
 
     // Attempt to parse the response
     let chat_response: ChatResponse = serde_json::from_str(&text)?;
 
-    if let Some(error) = chat_response.error {
-        if error.error_type == "invalid_request_error" && error.message.contains("credit balance") {
-            return Err("Your credit balance is too low to access the Claude API. Please go to Plans & Billing to upgrade or purchase credits.".into());
-        }
-        return Err(format!("API Error: {} - {}", error.error_type, error.message).into());
-    }
-
-    if let Some(choices) = chat_response.choices {
-        if let Some(choice) = choices.get(0) {
-            return Ok(choice.message.content.clone());
+    if let Some(candidate) = chat_response.candidates.first() {
+        if let Some(part) = candidate.content.parts.first() {
+            return Ok(part.text.clone());
         }
     }
 

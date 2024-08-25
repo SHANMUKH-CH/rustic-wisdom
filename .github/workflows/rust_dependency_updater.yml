@@ -1,0 +1,77 @@
+name: Update Rust Dependencies
+
+on:
+  schedule:
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Install cargo-audit and cargo-outdated
+        run: cargo install cargo-audit cargo-outdated
+
+      - name: Check for outdated dependencies
+        id: check-outdated
+        run: cargo outdated --exit-code 1 || echo "No outdated dependencies"
+
+      - name: Update dependencies
+        if: steps.check-outdated.outcome == 'failure'
+        id: update
+        run: |
+          cargo upgrade --recursive
+
+      - name: Install dependencies
+        if: steps.update.outputs.changes == 'true'
+        run: cargo build --verbose
+
+      - name: Run cargo check
+        if: steps.update.outputs.changes == 'true'
+        run: cargo check --verbose
+
+      - name: Run cargo fmt
+        if: steps.update.outputs.changes == 'true'
+        run: cargo fmt -- --check
+
+      - name: Run cargo clippy
+        if: steps.update.outputs.changes == 'true'
+        run: cargo clippy --fix --allow-dirty -- -D warnings
+
+      - name: Run security audit
+        if: steps.update.outputs.changes == 'true'
+        run: cargo audit
+          if [[ `git status --porcelain` ]]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.update.outputs.changes == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          commit-message: Update dependencies
+          title: 'Dependency Updates'
+          body: |
+            This PR updates the project dependencies.
+
+            Checks performed:
+            - Cargo build
+            - Cargo check
+            - Cargo test
+            - Cargo fmt
+            - Cargo clippy
+            - Security audit
+            - Outdated dependencies check
+          branch: dependency-updates
+          delete-branch: true

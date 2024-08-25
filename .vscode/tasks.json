@@ -1,0 +1,186 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": ">>> cargo fmt",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "fmt",
+                "--all"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "detail": "Format the Rust project"
+        },
+        {
+            "label": ">>> cargo fix",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "fix",
+                "--allow-dirty"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [
+                "$rustc"
+            ]
+        },
+        {
+            "label": ">>> cargo clippy",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "clippy",
+                "--workspace",
+                "--all-targets",
+                "--no-deps",
+                "--",
+                "-D",
+                "warnings"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "detail": "catch common mistakes & improve your Rust project"
+        },
+        {
+            "label": ">>> cargo build",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "build"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "detail": "Build the Rust project"
+        },
+        {
+            "label": ">>> cargo run",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "run",
+                "--quiet",
+                "--",
+                "--prompt",
+                "${input:promptString}"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "detail": "Run the Rust project"
+        },
+        {
+            "label": ">>> cargo test",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "test"
+            ],
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            },
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "detail": "Run tests for the Rust project"
+        },
+        {
+            "label": ">>> cargo clean",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "clean"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "detail": "Clean the Rust project"
+        },
+        {
+            "label": ">>> cargo check",
+            "type": "shell",
+            "command": "cargo",
+            "args": [
+                "check"
+            ],
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "detail": "Check the Rust project for errors"
+        },
+        {
+            "label": ">>> markdownlint",
+            "type": "markdownlint",
+            "problemMatcher": [
+                "$markdownlint"
+            ],
+            "detail": "markdownlint: Lint all Markdown files"
+        },
+        {
+            "label": ">>> update ubuntu packages",
+            "type": "shell",
+            "command": "echo shan | sudo -S apt update -y && sudo -S apt upgrade -y && sudo -S apt autoremove -y && sudo -S apt autoclean -y && sudo -S apt-get dist-upgrade -y",
+            "problemMatcher": [],
+            "detail": "Update Ubuntu packages",
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        },
+        {
+            "label": ">>> update rust toolchain",
+            "type": "shell",
+            "command": "rustup",
+            "args": [
+                "update"
+            ],
+            "detail": "Update Rust toolchain"
+        },
+        {
+            "label": ">>> pull code from origin - master ",
+            "type": "shell",
+            "command": "git",
+            "args": [
+                "pull",
+                "--rebase",
+                "origin",
+                "master"
+            ],
+            "detail": "Pull code from origin - master",
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        }
+    ],
+    "inputs": [
+        {
+            "id": "promptString",
+            "type": "promptString",
+            "description": "Enter a prompt string",
+            "default": "Hello, Im terrorblade. Who are you?"
+        }
+    ]
+}

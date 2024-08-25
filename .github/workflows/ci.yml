@@ -1,29 +1,131 @@
-# TODO: write workflow file for rust-app
-name: Rust CI
+name: CI
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
+    types: [opened, synchronize, reopened]
+  issues:
+    types: [opened, edited]
+  workflow_dispatch:
+    inputs:
+      prompt:
+        description: 'Prompt for the cargo run command'
+        required: true
+        default: 'How would Marcus Aurelius, Seneca and Epictetus handle a software bug in production, hilarious conversation between them in internal company chat. how would they handle a software engineer who caused the bug? self-deprecating humor about thier skill issues, philosophical banter, and witty remarks.'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-    - name: Set up Rust
+    - name: Set up Rust toolchain
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
 
-    - name: Build
-      run: cargo build --verbose
+    - name: Set prompt from issue body
+      if: github.event_name == 'issues'
+      id: set_prompt
+      uses: actions/github-script@v4
+      with:
+        script: |
+          const issue_body = context.payload.issue.body;
+          const prompt = issue_body.split('## Enter the Prompt below')[1]?.trim() || '';
+          core.setOutput('prompt', prompt);
 
-    - name: Run tests
-      run: cargo test --verbose
+    - name: Cargo run with prompt
+      id: cargo_run_with_prompt
+      run: |
+        cargo test --quiet
+        cargo run --quiet -- --prompt "${{ steps.set_prompt.outputs.prompt || github.event.inputs.prompt }}" | tee cargo_output.txt
+      env:
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+    - name: Upload cargo output
+      uses: actions/upload-artifact@v2
+      with:
+        name: cargo-output
+        path: cargo_output.txt
+
+  comment_and_close_issue:
+    if: github.event_name == 'issues' && github.event.issue.user.login == github.repository_owner
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download cargo output
+      uses: actions/download-artifact@v2
+      with:
+        name: cargo-output
+
+    - name: Comment on issue and close it
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const output = fs.readFileSync('cargo_output.txt', 'utf8');
+          const issue_number = context.issue.number;
+
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: issue_number,
+            body: `${output}`
+          });
+
+          await github.rest.issues.update({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: issue_number,
+            state: 'closed'
+          });
+
+  deploy_to_gh_pages:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download cargo output
+      uses: actions/download-artifact@v2
+      with:
+        name: cargo-output
+
+    - name: Install pandoc
+      run: sudo apt-get install -y pandoc
+
+    - name: Convert Markdown to HTML
+      run: pandoc cargo_output.txt -o index.html
+
+    - name: Deploy to GitHub Pages
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git checkout --orphan gh-pages
+        git reset --hard
+        git add index.html
+        git commit -m 'Deploy to GitHub Pages'
+        git push --force origin gh-pages
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr_checks:
+    if: github.event_name == 'pull_request'
+    needs: deploy_to_gh_pages
+    runs-on: ubuntu-latest
+    steps:
+    - name: Auto-merge if checks pass
+      uses: pascalgn/automerge-action@v0.15.6
+      env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          MERGE_LABELS: ""
+          MERGE_METHOD: "squash"
+          MERGE_COMMIT_MESSAGE: "Auto-merge dependency updates"
+          MERGE_FILTER_AUTHOR: "github-actions[bot]"

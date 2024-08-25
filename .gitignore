@@ -376,9 +376,6 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
-# VS Code files for those working on multiple tools
-.vscode/
-*.code-workspace
 # Local History for Visual Studio Code
 .history/
 
@@ -399,3 +396,4 @@ FodyWeavers.xsd
 
 # api-key
 .env
+.rustc_info.json
