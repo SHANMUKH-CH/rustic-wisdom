@@ -51,16 +51,17 @@ jobs:
       uses: actions/github-script@v6
       with:
         script: |
+          const github = require('@actions/github');
           const fs = require('fs');
           const output = fs.readFileSync('cargo_output.txt', 'utf8');
-          const issue_number = context.issue.number;
+          const issue_number = github.context.issue.number;
           await github.issues.createComment({
-            ...context.repo,
+            ...github.context.repo,
             issue_number,
             body: `\`\`\`\n${output}\n\`\`\``
           });
           await github.issues.update({
-            ...context.repo,
+            ...github.context.repo,
             issue_number,
             state: 'closed'
           });
