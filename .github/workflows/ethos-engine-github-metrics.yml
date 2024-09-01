@@ -1,0 +1,47 @@
+name: GitHub Metrics to EK Stack
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch-and-index:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Python 3
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        python3 -m pip install --upgrade pip
+        python3 -m pip install -r src/Sirani/self-hosted-runner/requirements.txt
+
+    - name: Install ngrok
+      run: |
+        wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+        unzip ngrok-stable-linux-amd64.zip
+        sudo mv ngrok /usr/local/bin
+
+    - name: Start ngrok tunnel
+      id: ngrok
+      run: |
+        ngrok authtoken ${{ secrets.NGROK_TOKEN }}
+        ngrok http 9200 > /dev/null &
+        sleep 5
+        NGROK_URL=$(curl -s localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url')
+        echo "NGROK_URL=$NGROK_URL" >> $GITHUB_ENV
+      env:
+        NGROK_TOKEN: ${{ secrets.NGROK_TOKEN }}
+
+    - name: Run metrics script
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_REPO: "SHANMUKH-CH/rustic-wisdom"
+        ES_HOST: ${{ env.NGROK_URL }}
+        ES_PORT: "80"
+        ES_USER: ${{ secrets.ES_USER }}
+        ES_PASSWORD: ${{ secrets.ES_PASSWORD }}
+      run: python3 src/Sirani/metrics.py --github_token "${{ secrets.GITHUB_TOKEN }}" --github_repo "${{ env.GITHUB_REPO }}" --es_host "${{ env.ES_HOST }}" --es_port "${{ env.ES_PORT }}" --es_user "${{ env.ES_USER }}" --es_password "${{ env.ES_PASSWORD }}"

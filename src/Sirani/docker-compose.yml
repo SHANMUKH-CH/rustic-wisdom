@@ -1,0 +1,53 @@
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.14.0
+    env_file:
+      - elasticsearch.env
+    ports:
+      - 9200:9200
+    mem_limit: 1g
+    networks:
+      - temperance-elk-network
+    volumes:
+      - ./certs:/usr/share/elasticsearch/config/certs:ro
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.14.0
+    ports:
+      - 5601:5601
+    depends_on:
+      - elasticsearch
+    mem_limit: 1g
+    networks:
+      - temperance-elk-network
+    env_file:
+      - kibana.env
+    volumes:
+      - ./certs:/usr/share/kibana/config/certs:ro
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+
+#   ngrok:
+#     image: ngrok/ngrok:latest
+#     command: http https://elasticsearch:9200
+#     ports:
+#       - 4040:4040
+#     depends_on:
+#       - kibana
+#     networks:
+#       - temperance-elk-network
+#     env_file:
+#       - ngrok.env
+#     restart: unless-stopped
+
+  self-hosted-runner:
+    image: self-hosted-runner:rustic-wisdom
+    env_file:
+      - runnertoken.env
+    networks:
+      - temperance-elk-network
+    restart: unless-stopped
+
+networks:
+  temperance-elk-network:
+    external: true
+    driver: bridge

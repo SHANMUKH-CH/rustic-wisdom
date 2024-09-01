@@ -395,5 +395,7 @@ FodyWeavers.xsd
 /target
 
 # api-key
-.env
-.rustc_info.json
+*.rustc_info.json
+src/Sirani/token.env
+*.env
+src/Sirani/certs
