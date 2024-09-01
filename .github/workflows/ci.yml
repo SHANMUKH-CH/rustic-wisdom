@@ -24,6 +24,7 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
+        profile: minimal
 
     - name: Set prompt from issue body
       if: github.event_name == 'issues'

@@ -5,7 +5,7 @@
     "editor.renderWhitespace": "trailing",
     "editor.cursorStyle": "underline",
     "editor.wordWrap": "wordWrapColumn",
-    "explorer.excludeGitIgnore": true,
+    "explorer.excludeGitIgnore": false,
     "editor.bracketPairColorization.independentColorPoolPerBracketType": true,
     "editor.codeLensFontFamily": "'Cascadia Code', Consolas, 'Courier New', 'MesloLGS NF', monospace",
     "editor.formatOnPaste": true,

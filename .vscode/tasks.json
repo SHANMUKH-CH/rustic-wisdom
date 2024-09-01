@@ -32,7 +32,8 @@
             },
             "problemMatcher": [
                 "$rustc"
-            ]
+            ],
+            "detail": "Fix the Rust project"
         },
         {
             "label": ">>> cargo clippy",
@@ -170,6 +171,16 @@
                 "master"
             ],
             "detail": "Pull code from origin - master",
+            "runOptions": {
+                "runOn": "folderOpen"
+            }
+        },
+        {
+            "label": ">>> docker infra up",
+            "type": "shell",
+            "command": "cd /mnt/d/rustic-wisdom/src/Sirani/ && make all",
+            "problemMatcher": [],
+            "detail": "docker infra up: Elasticsearch, Kibana, self-hosted-runner",
             "runOptions": {
                 "runOn": "folderOpen"
             }

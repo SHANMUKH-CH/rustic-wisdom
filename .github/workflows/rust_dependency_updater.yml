@@ -8,6 +8,8 @@ on:
 jobs:
   update-dependencies:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
 
@@ -60,6 +62,7 @@ jobs:
         if: steps.update.outputs.changes == 'true'
         uses: peter-evans/create-pull-request@v5
         with:
+          token: ${{ secrets.GH_TOKEN }}
           commit-message: Update dependencies
           title: 'Dependency Updates'
           body: |
